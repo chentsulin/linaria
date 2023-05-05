@@ -692,9 +692,24 @@ export const visitors: Visitors = {
             t.isMemberExpression(parent) &&
             t.isIdentifier(parent.property)
           ) {
-            // An imported function is specified right here.
-            // eg. require('../slugify').default
-            this.graph.imports.get(source)!.push(parent.property);
+            // Support `_interop_require_default._` and `_interop_require_wildcard` from swc
+            if (
+              t.isIdentifier(parent.object) &&
+              parent.object.name.startsWith('_interop_require_default') &&
+              parent.property.name === '_'
+            ) {
+              this.graph.importTypes.set(source, 'default');
+            } else if (
+              t.isIdentifier(parent.object) &&
+              parent.object.name.startsWith('_interop_require_wildcard') &&
+              parent.property.name === '_'
+            ) {
+              this.graph.importTypes.set(source, 'wildcard');
+            } else {
+              // An imported function is specified right here.
+              // eg. require('../slugify').default
+              this.graph.imports.get(source)!.push(parent.property);
+            }
           } else {
             if (
               t.isCallExpression(parent) &&
